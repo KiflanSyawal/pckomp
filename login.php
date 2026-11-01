@@ -1,3 +1,10 @@
+<?php
+include 'db.php';
+if(isset($_SESSION['status_login']) && $_SESSION['status_login'] == true){
+    echo '<script>window.location="dashboard.php"</script>';
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html>
     <head>
@@ -6,36 +13,38 @@
         <title>Login | pckomp</title>
         <link rel="stylesheet" type="text/css" href="css/style.css">
         <link href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap" rel="stylesheet">
-
     </head>
     <body id="bg-Login">
         <div class="box-login">
             <h2>Login</h2>
             <form action="" method="POST">
-                <input type="text" name="user" placeholder="username" class="input-control">
-                <input type="password" name="pass" placeholder="password" class="input-control">
+                <input type="text" name="user" placeholder="username" class="input-control" required>
+                <input type="password" name="pass" placeholder="password" class="input-control" required>
                 <input type="submit" name="submit" value="login" class="btn">
             </form>
             <?php
                 if(isset($_POST['submit'])){
-                    session_start();
-                    include 'db.php';
+                    $user = trim($_POST['user']);
+                    $pass = trim($_POST['pass']);
 
-                    $user = $_POST['user'];
-                    $pass = $_POST['pass'];
+                    $stmt = $conn->prepare("SELECT * FROM admin WHERE username = :user AND password = :pass");
+                    $stmt->execute([
+                        ':user' => $user,
+                        ':pass' => md5($pass)
+                    ]);
+                    $d = $stmt->fetch(PDO::FETCH_OBJ);
 
-                    $cek = mysqli_query($conn, "SELECT * FROM admin WHERE username = '".$user."' AND password = '".md5($pass)."'");
-                    if(mysqli_num_rows($cek) > 0){
-                        $d = mysqli_fetch_object($cek);
+                    if($d){
+                        $_SESSION['status_login'] = true;
                         $_SESSION['status login'] = true;
-                        $_SESSION['a_global'] = $d;
-                        $_SESSION['id'] = $d->admin_id;
+                        $_SESSION['a_global']     = $d;
+                        $_SESSION['id']           = $d->admin_id;
                         echo '<script>window.location="dashboard.php"</script>';
-                    } else{
-                        echo '<script>alert("username atau password anda salah!")</script';
+                    } else {
+                        echo '<script>alert("username atau password anda salah!")</script>';
                     }
                 }
             ?>
         </div>
     </body>
-</html>   
+</html>

@@ -1,12 +1,18 @@
 <?php
-  session_start();
   include 'db.php';
-  if($_SESSION['status_login'] != true){
+  if(!isset($_SESSION['status_login']) || $_SESSION['status_login'] != true){
     echo '<script>window.location="login.php"</script>';
+    exit;
   }
 
-  $query = mysqli_query($conn, "SELECT * FROM admin WHERE admin_id = '".$_SESSION['id']."' ");
-  $d = mysqli_fetch_object($query);
+  $stmt = $conn->prepare("SELECT * FROM admin WHERE admin_id = :id");
+  $stmt->execute([':id' => $_SESSION['id']]);
+  $d = $stmt->fetch(PDO::FETCH_OBJ);
+
+  if(!$d){
+    echo '<script>window.location="keluar.php"</script>';
+    exit;
+  }
 ?>
 <!DOCTYPE html>
 <html>
@@ -36,35 +42,50 @@
                 <h3>Profile</h3>
                 <div class="box">
                     <form action="" method="POST">
-                        <input type="text" name="nama" placeholder="Nama Lengkap" class="input-control" value="<?php echo $d->admin_name ?>" required>
-                        <input type="text" name="user" placeholder="Username" class="input-control" value="<?php echo $d->username ?>" required>
-                        <input type="text" name="hp" placeholder="No Hp" class="input-control" value="<?php echo $d->admin_telp ?>" required>
-                        <input type="email" name="email" placeholder="Email" class="input-control" value="<?php echo $d->admin_email ?>" required>
-                        <input type="text" name="alamat" placeholder="Alamat" class="input-control" value="<?php echo $d->admin_address ?>" required>
+                        <input type="text" name="nama" placeholder="Nama Lengkap" class="input-control" value="<?php echo htmlspecialchars($d->admin_name) ?>" required>
+                        <input type="text" name="user" placeholder="Username" class="input-control" value="<?php echo htmlspecialchars($d->username) ?>" required>
+                        <input type="text" name="hp" placeholder="No Hp" class="input-control" value="<?php echo htmlspecialchars($d->admin_telp) ?>" required>
+                        <input type="email" name="email" placeholder="Email" class="input-control" value="<?php echo htmlspecialchars($d->admin_email) ?>" required>
+                        <input type="text" name="alamat" placeholder="Alamat" class="input-control" value="<?php echo htmlspecialchars($d->admin_address) ?>" required>
                         <input type="submit" name="submit" value="Ubah Profile" class="btn">
                     </form>
                     <?php
                         if(isset($_POST['submit'])){
-                            $nama    = ucwords($_POST['nama']);
-                            $user    = $_POST['user'];
-                            $hp      = $_POST['hp'];
-                            $email   = $_POST['email'];
-                            $alamat  = ucwords($_POST['alamat']);
+                            $nama    = ucwords(trim($_POST['nama']));
+                            $user    = trim($_POST['user']);
+                            $hp      = trim($_POST['hp']);
+                            $email   = trim($_POST['email']);
+                            $alamat  = ucwords(trim($_POST['alamat']));
 
-                            $update  = mysqli_query($conn, "UPDATE admin SET 
-                                             admin_name = '".$nama."',
-                                             username = '".$user."',
-                                             admin_telp = '".$hp."',
-                                             admin_email = '".$email."',
-                                             admin_address = '".$alamat."'
-                                             WHERE admin_id = '".$d->admin_id."' ");
+                            $update  = $conn->prepare("UPDATE admin SET 
+                                             admin_name = :nama,
+                                             username = :user,
+                                             admin_telp = :hp,
+                                             admin_email = :email,
+                                             admin_address = :alamat
+                                             WHERE admin_id = :id");
+                            $isSuccess = $update->execute([
+                                ':nama'   => $nama,
+                                ':user'   => $user,
+                                ':hp'     => $hp,
+                                ':email'  => $email,
+                                ':alamat' => $alamat,
+                                ':id'     => $d->admin_id
+                            ]);
 
-                        if($update){
-                            echo '<script>alert("Ubah Data Berhasil")</script>';
-                            echo '<script>window.location="profile.php"</script>';
-                        }else{
-                            echo 'gagal '.mysqli_error($conn);
-                        }
+                            if($isSuccess){
+                                $d->admin_name = $nama;
+                                $d->username = $user;
+                                $d->admin_telp = $hp;
+                                $d->admin_email = $email;
+                                $d->admin_address = $alamat;
+                                $_SESSION['a_global'] = $d;
+
+                                echo '<script>alert("Ubah Data Berhasil")</script>';
+                                echo '<script>window.location="profile.php"</script>';
+                            }else{
+                                echo 'gagal mengubah profil';
+                            }
                         }
                     ?>
                 </div>
@@ -78,21 +99,25 @@
                     </form>
                     <?php
                         if(isset($_POST['ubah_password'])){
-                            $pass1    = $_POST['pass1'];
-                            $pass2    = $_POST['pass2'];
+                            $pass1 = $_POST['pass1'];
+                            $pass2 = $_POST['pass2'];
 
                             if($pass2 != $pass1 ){
                                 echo '<script>alert("Password Baru Tidak Sesuai")</script>';
                             }else{
-                                $u_pass  = mysqli_query($conn, "UPDATE admin SET 
-                                             password = '".MD5($pass1)."'
-                                             WHERE admin_id = '".$d->admin_id."' ");
+                                $u_pass = $conn->prepare("UPDATE admin SET 
+                                             password = :pass
+                                             WHERE admin_id = :id");
+                                $isPassUpdated = $u_pass->execute([
+                                    ':pass' => md5($pass1),
+                                    ':id'   => $d->admin_id
+                                ]);
 
-                                if($u_pass){
+                                if($isPassUpdated){
                                     echo '<script>alert("Ubah Data Berhasil")</script>';
                                     echo '<script>window.location="profile.php"</script>';
                                 }else{
-                                    echo 'gagal '.mysqli_error($conn);
+                                    echo 'gagal mengubah password';
                                 }
                             }
                         }
@@ -108,4 +133,4 @@
             </div>
         </footer>
     </body>
-</html>   
+</html>

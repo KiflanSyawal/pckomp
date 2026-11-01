@@ -1,3 +1,10 @@
+<?php
+  include 'db.php';
+  if(!isset($_SESSION['status_login']) || $_SESSION['status_login'] != true){
+    echo '<script>window.location="login.php"</script>';
+    exit;
+  }
+?>
 <!DOCTYPE html>
 <html>
     <head>
@@ -25,9 +32,15 @@
             <div class="container">
                 <h3>Dashboard</h3>
                 <div class="box">
-                    <h4>Selamat Datang</h4>
+                    <h4>Selamat Datang <?php echo isset($_SESSION['a_global']->admin_name) ? htmlspecialchars($_SESSION['a_global']->admin_name) : ''; ?> di Toko Online PCKOMP</h4>
                 </div>
             </div>
         </div>
+
+        <footer>
+            <div class="container">
+                <small>Copyright &copy; 2022 - pckomp.</small>
+            </div>
+        </footer>
     </body>
-</html>   
+</html>

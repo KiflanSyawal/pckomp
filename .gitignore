@@ -1,0 +1,9 @@
+# Temporary session files
+database/sessions/*
+!database/sessions/.gitkeep
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+.DS_Store
+

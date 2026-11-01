@@ -1,8 +1,8 @@
 <?php
-  session_start();
   include 'db.php';
-  if($_SESSION['status_login'] != true){
+  if(!isset($_SESSION['status_login']) || $_SESSION['status_login'] != true){
     echo '<script>window.location="login.php"</script>';
+    exit;
   }
 ?>
 <!DOCTYPE html>
@@ -38,17 +38,16 @@
                     </form>
                     <?php
                         if(isset($_POST['submit'])){
+                            $nama = ucwords(trim($_POST['nama']));
 
-                            $nama = ucwords($_POST['nama']);
+                            $insert = $conn->prepare("INSERT INTO category (kategori_nama) VALUES (:nama)");
+                            $isSuccess = $insert->execute([':nama' => $nama]);
 
-                            $insert = mysqli_query($conn, "INSERT INTO category VALUE (
-                                               null,
-                                               '".$nama."') ");
-                            if($insert){
+                            if($isSuccess){
                                 echo '<script>alert("Tambah Data Berhasil")</script>';
                                 echo '<script>window.location="data_kategori.php"</script>';
                             }else{
-                                echo 'gagal'.mysqli_error($conn);
+                                echo 'gagal menambah data kategori';
                             }                   
                         }
                     ?>
@@ -62,4 +61,4 @@
             </div>
         </footer>
     </body>
-</html>   
+</html>

@@ -1,15 +1,18 @@
 <?php
-  session_start();
   include 'db.php';
-  if($_SESSION['status_login'] != true){
+  if(!isset($_SESSION['status_login']) || $_SESSION['status_login'] != true){
     echo '<script>window.location="login.php"</script>';
+    exit;
   }
 
-  $kategori = mysqli_query($conn, "SELECT * FROM category WHERE kategori_id = '".$_GET['id']."' ");
-  if(mysqli_num_rows($kategori) == 0){
+  $stmt = $conn->prepare("SELECT * FROM category WHERE kategori_id = :id");
+  $stmt->execute([':id' => $_GET['id'] ?? '']);
+  $k = $stmt->fetch(PDO::FETCH_OBJ);
+
+  if(!$k){
     echo '<script>window.location="data_kategori.php"</script>';
+    exit;
   }
-  $k = mysqli_fetch_object($kategori);
 ?>
 <!DOCTYPE html>
 <html>
@@ -39,24 +42,26 @@
                 <h3>Edit Data Kategori</h3>
                 <div class="box">
                     <form action="" method="POST">
-                        <input type="text" name="nama" placeholder="Nama Kategori" class="input-control" value="<?php echo $k->kategori_nama?>" required>
+                        <input type="text" name="nama" placeholder="Nama Kategori" class="input-control" value="<?php echo htmlspecialchars($k->kategori_nama) ?>" required>
                         <input type="submit" name="submit" value="Submit" class="btn">
                     </form>
                     <?php
                         if(isset($_POST['submit'])){
+                            $nama = ucwords(trim($_POST['nama']));
 
-                            $nama = ucwords($_POST['nama']);
-
-                            $update = mysqli_query($conn, "UPDATE category SET 
-                                                    kategori_nama = '".$nama."'
-                                                    WHERE kategori_id = '".$k->kategori_id."' ");
+                            $update = $conn->prepare("UPDATE category SET 
+                                                    kategori_nama = :nama
+                                                    WHERE kategori_id = :id");
+                            $isSuccess = $update->execute([
+                                ':nama' => $nama,
+                                ':id'   => $k->kategori_id
+                            ]);
                             
-                                                    
-                            if($update){
+                            if($isSuccess){
                                 echo '<script>alert("Edit Data Berhasil")</script>';
                                 echo '<script>window.location="data_kategori.php"</script>';
                             }else{
-                                echo 'gagal'.mysqli_error($conn);
+                                echo 'gagal mengedit data kategori';
                             }                   
                         }
                     ?>
@@ -70,4 +75,4 @@
             </div>
         </footer>
     </body>
-</html>   
+</html>
