@@ -7,11 +7,28 @@
  * zero-configuration, file-based SQLite database.
  */
 
+// Detect Vercel / Serverless Environment (where filesystem is read-only except /tmp)
+$isVercel = (getenv('VERCEL') || isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']));
+
+if ($isVercel) {
+    $dbDir        = '/tmp';
+    $dbPath       = '/tmp/pckomp.sqlite';
+    $localSessDir = '/tmp/sessions';
+    $sourceDb     = __DIR__ . DIRECTORY_SEPARATOR . 'database' . DIRECTORY_SEPARATOR . 'pckomp.sqlite';
+
+    if (!file_exists($dbPath) && file_exists($sourceDb)) {
+        @copy($sourceDb, $dbPath);
+    }
+} else {
+    $dbPath       = __DIR__ . DIRECTORY_SEPARATOR . 'database' . DIRECTORY_SEPARATOR . 'pckomp.sqlite';
+    $dbDir        = dirname($dbPath);
+    $localSessDir = $dbDir . DIRECTORY_SEPARATOR . 'sessions';
+}
+
 // Ensure session is safely configured and started
 if (session_status() === PHP_SESSION_NONE) {
     $currentSessPath = session_save_path();
     if (empty($currentSessPath) || !@is_writable($currentSessPath)) {
-        $localSessDir = __DIR__ . DIRECTORY_SEPARATOR . 'database' . DIRECTORY_SEPARATOR . 'sessions';
         if (!is_dir($localSessDir)) {
             @mkdir($localSessDir, 0777, true);
         }
@@ -21,9 +38,6 @@ if (session_status() === PHP_SESSION_NONE) {
     }
     @session_start();
 }
-
-$dbPath = __DIR__ . DIRECTORY_SEPARATOR . 'database' . DIRECTORY_SEPARATOR . 'pckomp.sqlite';
-$dbDir  = dirname($dbPath);
 
 if (!is_dir($dbDir)) {
     @mkdir($dbDir, 0777, true);
